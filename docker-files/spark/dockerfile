@@ -1,0 +1,26 @@
+FROM apache/spark:3.5.0
+
+USER root
+
+ARG HADOOP_AWS_VERSION=3.3.1
+ARG AWS_SDK_VERSION=1.11.1026
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3-pip curl ca-certificates && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    pip3 install --no-cache-dir \
+        pyspark \
+        minio \
+        pytest \
+        setuptools \
+        requests && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    base=https://repo1.maven.org/maven2; \
+    curl -fsSL -o /opt/spark/jars/hadoop-aws-${HADOOP_AWS_VERSION}.jar "$base/org/apache/hadoop/hadoop-aws/${HADOOP_AWS_VERSION}/hadoop-aws-${HADOOP_AWS_VERSION}.jar" && \
+    curl -fsSL -o /opt/spark/jars/aws-java-sdk-bundle-${AWS_SDK_VERSION}.jar "$base/com/amazonaws/aws-java-sdk-bundle/${AWS_SDK_VERSION}/aws-java-sdk-bundle-${AWS_SDK_VERSION}.jar"
+
+USER 185
+
+WORKDIR /opt

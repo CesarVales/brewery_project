@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+
+  spark:
+    build:
+      dockerfile: ./docker-files/spark/dockerfile
+    container_name: spark
+    depends_on:
+      - minio
+    ports:
+      - "4040:4040"
+    volumes:
+      - .:/breweryproject
+      - ./data:/data
+    working_dir: /breweryproject
+    command: [ "tail", "-f", "/dev/null" ]
+
+  prefect:
+    build:
+      dockerfile: ./docker-files/prefect/dockerfile
+    container_name: prefect
+    depends_on:
+      - spark
+      - minio
+      - prefect-server
+    ports: []
+    volumes:
+      - .:/opt/prefect-data
+    working_dir: /opt/prefect-data
+    environment:
+      - PYTHONPATH=/opt/prefect-data
+      - PREFECT_API_URL=http://prefect-server:4200/api
+    command: [ "tail", "-f", "/dev/null" ]
+
+  prefect-server:
+    image: prefecthq/prefect:2.14.18-python3.10
+    container_name: prefect-server
+    ports:
+      - "4200:4200"
+    command: prefect server start --host 0.0.0.0
+    environment:
+      - PREFECT_UI_ENABLED=true
+      # Usando Postgres como db ao inves de sqlite - using Postgres as db instead of the default SQLite to avoid "database is locked" errors
+      - PREFECT_ORION_DATABASE_CONNECTION_URL=postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
+      - PREFECT__ORION__DATABASE__CONNECTION_URL=postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: prefect
+      POSTGRES_DB: prefect
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+volumes:
+  minio-data:
+  postgres-data:

@@ -1,0 +1,42 @@
+###
+### A complete description of a Prefect Deployment for flow 'my-flow'
+###
+name: Hello Flow
+description: null
+version: 086414157c759e6999a7a6ec03c52e3b
+# The work queue that will handle this deployment's runs
+work_queue_name: default
+work_pool_name: null
+tags: []
+parameters: {}
+schedule: null
+is_schedule_active: null
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  block_type_slug: process
+  _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: my-flow
+manifest_path: null
+storage: null
+path: /opt/prefect-data
+entrypoint: flows/spark_job.py:my_flow
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties: {}
+  required: null
+  definitions: null
+timestamp: '2025-09-19T00:44:19.468438+00:00'
+triggers: []
+enforce_parameter_schema: null
