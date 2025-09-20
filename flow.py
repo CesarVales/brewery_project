@@ -1,3 +1,4 @@
+import logging
 from prefect import flow, task
 from prefect.filesystems import S3
 from prefect.infrastructure import DockerContainer
@@ -6,6 +7,8 @@ from minio import Minio
 import tempfile
 import os
 import glob
+
+from stages.brewery_api_ingestion import brewery_api_ingestion_flow
 @task
 def setup_minio_client():
     return Minio(
@@ -73,4 +76,10 @@ def spark_minio_flow():
     spark.stop()
 
 if __name__ == "__main__":
-    spark_minio_flow()
+    #logging.info("Brewing Data... 🍻:")
+    #spark_session = create_spark_session()
+
+    brewery_api_ingestion_flow()
+
+
+    #spark_session.stop()
