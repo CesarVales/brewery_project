@@ -5,15 +5,15 @@ from pyspark.sql import SparkSession
 from minio import Minio
 import tempfile
 import os
-
+import glob
 @task
 def setup_minio_client():
     return Minio(
-        "minio:9000",
-        access_key="minio",
-        secret_key="minio123",
-        secure=False
-    )
+            os.getenv("MINIO_ENDPOINT", "minio:9000"),
+            access_key="minio",
+            secret_key="minio123",
+            secure=False
+        )
 
 @task
 def create_spark_session():
@@ -47,11 +47,28 @@ def spark_minio_flow():
     minio_client = setup_minio_client()
     spark = create_spark_session()
     
-    # Create a sample dataframe
+    print('*'*55)
     data = [("Alice", 1), ("Bob", 2), ("Charlie", 3)]
     df = spark.createDataFrame(data, ["Name", "Value"])
-    df.show()
     
+    # Create bucket without s3a:// prefix
+    bucket_name = "test-bucket"
+    if not minio_client.bucket_exists(bucket_name):
+        minio_client.make_bucket(bucket_name)
+    
+    # Write data and find the actual file created by Spark
+    df.coalesce(1).write.mode("overwrite").json("/tmp/data/")
+    
+    # en: glob lib enable regex for path
+    # pt: lib do glob possibilita regex para path
+    json_files = glob.glob("/tmp/data/*.json")
+    if json_files:
+        json_file = json_files[0]
+        print(f"Uploading JSON file: {json_file}")
+        minio_client.fput_object(bucket_name, "data.json", json_file)
+    else:
+        print("No JSON files found in /tmp/data/")
+
     print("Flow completed successfully!")
     spark.stop()
 
