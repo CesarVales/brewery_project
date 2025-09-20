@@ -63,7 +63,7 @@ def brewery_api_ingestion_flow():
     logger.info(f"Saved API data to temporary file: {temp_file_path}")
 
     minio_client = setup_minio_client()
-    
+
     # Upload to MinIO
     bucket_name = "brewery-data"
     object_name = "raw_data_breweries.json"
@@ -71,6 +71,5 @@ def brewery_api_ingestion_flow():
 
     logger.info(f"Uploaded {object_name} to bucket {bucket_name} in MinIO.")
 
-
     # Clean up temporary file
-    #os.remove(temp_file_path)
+    os.remove(temp_file_path)

@@ -8,7 +8,9 @@ import tempfile
 import os
 import glob
 
-from stages.brewery_api_ingestion import brewery_api_ingestion_flow
+from stages.bronze.brewery_api_ingestion import brewery_api_ingestion_flow
+from stages.silver.bronze_to_silver import bronze_to_silver
+
 @task
 def setup_minio_client():
     return Minio(
@@ -38,7 +40,7 @@ def create_spark_session():
     if spark_master.startswith("local"):
         builder = builder \
             .config("spark.driver.bindAddress", "0.0.0.0") \
-            .config("spark.ui.enabled", "true")
+            .config("spark.ui.enabled", "false")
 
     builder = builder.master(spark_master)
 
@@ -74,12 +76,24 @@ def spark_minio_flow():
 
     print("Flow completed successfully!")
     spark.stop()
+@flow(name="full-brewery-pipeline")
+def full_brewery_pipeline():
+    logger = logging.getLogger("Brewing Data... 🍻:")
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+
+    logger.info("Starting full brewery pipeline...")
+    
+    brewery_api_ingestion_flow()
+    bronze_to_silver(minio_client=setup_minio_client())
+    
+    logger.info("Full brewery pipeline completed.")
 
 if __name__ == "__main__":
     #logging.info("Brewing Data... 🍻:")
-    #spark_session = create_spark_session()
 
-    brewery_api_ingestion_flow()
-
+    full_brewery_pipeline()
 
     #spark_session.stop()
