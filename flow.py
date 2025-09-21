@@ -65,8 +65,5 @@ def full_brewery_pipeline():
     logger.info("Full brewery pipeline completed.")
 
 if __name__ == "__main__":
-    #logging.info("Brewing Data... 🍻:")
-
     full_brewery_pipeline()
 
-    #spark_session.stop()
