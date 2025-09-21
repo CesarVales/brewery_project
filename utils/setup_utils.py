@@ -4,7 +4,6 @@ from minio import Minio
 import os
 
 
-
 @task
 def setup_minio_client():
     return Minio(

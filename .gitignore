@@ -4,3 +4,5 @@ __pycache__
 minio-data
 plugins
 brewery-data
+.venv
+.pytest_cache

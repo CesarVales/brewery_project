@@ -2,17 +2,9 @@ import os
 
 from workflow.flow import full_brewery_pipeline
 
-# Prefect imports with compatibility fallbacks
-try:
-    from prefect.deployments import Deployment  # Prefect >= 2.8
-except Exception:  # pragma: no cover
-    from prefect.deployment import Deployment  # Older 2.x fallback
+from prefect.deployments import Deployment 
+from prefect.server.schemas.schedules import CronSchedule  
 
-# Optional schedule import
-try:
-    from prefect.server.schemas.schedules import CronSchedule  # Prefect 2.x server schema
-except Exception:  # pragma: no cover
-    CronSchedule = None  # type: ignore
 
 
 deployment = Deployment.build_from_flow(

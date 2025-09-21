@@ -1,105 +1,110 @@
-# Brewery Project – Execução local com Docker
+# Brewery Project – Run Locally with Docker
 
-Pipeline de dados com Prefect 2, Spark e MinIO. Este guia mostra como subir tudo com Docker e rodar o fluxo localmente de forma reprodutível.
+Data pipeline using Prefect 2, Spark, and MinIO. This guide shows how to bring everything up with Docker and run the flow locally in a reproducible way.
 
-## Visão geral
-- Orquestração: Prefect Server (UI em `http://localhost:4200`) e um agente Prefect
-- Armazenamento de objetos: MinIO (console em `http://localhost:9001` – usuário `minio`, senha `minio123`)
-- Processamento: Spark
-- Banco do Prefect: Postgres (via Docker)
+## Overview
+- Orchestration: Prefect Server (UI at `http://localhost:4200`) and a Prefect agent
+- Object storage: MinIO (console at `http://localhost:9001` – user `minio`, password `minio123`)
+- Processing: Spark
+- Prefect database: Postgres (via Docker)
 
-Estrutura principal usada:
-- `docker-compose.yaml` – define os serviços
-- `deployment.py` – cria/aplica o deployment do Prefect para o fluxo `workflow/flow.py:full_brewery_pipeline`
+Main files used:
+- `docker-compose.yaml` – defines the services
+- `deployment.py` – creates/applies the Prefect deployment for the flow `workflow/flow.py:full_brewery_pipeline`
 
-## Pré‑requisitos
+## Prerequisites
 - Docker Desktop (Compose v2)
-- Porta 4200 livre (Prefect UI), portas 9000/9001 livres (MinIO)
+- Port 4200 free (Prefect UI), and ports 9000/9001 free (MinIO)
 
-Não é necessário Python instalado na máquina: os comandos serão executados dentro do container `prefect`.
+You don't need Python installed locally: all commands below are executed inside the `prefect` container.
 
-## Subindo a stack
-1) Build das imagens (inclui imagens custom de Spark e Prefect)
+## Bring up the stack
+1) Build the images (includes custom images for Spark and Prefect)
 ```powershell
 docker compose build
 ```
 
-2) Subir os serviços
+2) Start the services
 ```powershell
 docker compose up -d
 ```
 
-3) Acessos rápidos
+3) Quick access
 - Prefect UI: `http://localhost:4200`
 - MinIO Console: `http://localhost:9001` (user: `minio`, pass: `minio123`)
 
-## Iniciar o agente do Prefect
-O agente precisa estar rodando e ouvindo a fila `default` (já configurada no compose via `PREFECT_API_URL`).
+## Start the Prefect agent
+The agent must be running and listening to the `default` queue (configured in compose via `PREFECT_API_URL`).
 
-- Interativo (anexa o terminal):
+- Interactive (attaches to your terminal):
 ```powershell
 docker exec -it prefect bash -lc "prefect agent start -q default"
 ```
 
-- Em background (não bloqueia seu terminal):
+- Background (does not block your terminal):
 ```powershell
 docker exec -d prefect bash -lc "prefect agent start -q default"
 ```
 
-Você pode acompanhar as execuções pela UI do Prefect ou ver logs anexando ao container do agente.
+You can monitor runs from the Prefect UI or by attaching to the agent container logs.
 
-## Criar e aplicar o deployment
-O arquivo `deployment.py` gera um YAML em `prefect_data/full_brewery_pipeline-deployment.yaml` e tenta aplicar o deployment automaticamente.
+## Create and apply the deployment
+The file `deployment.py` generates a YAML at `prefect_data/full_brewery_pipeline-deployment.yaml` and attempts to apply the deployment automatically.
 
-Execute dentro do container `prefect`:
+Run inside the `prefect` container:
 ```powershell
 docker exec -it prefect bash -lc "python deployment.py"
 ```
 
-Se a aplicação automática falhar (ex.: API do Prefect ainda subindo), aplique manualmente o YAML:
+If the automatic apply fails (e.g., Prefect API is still starting), apply the YAML manually:
 ```powershell
 docker exec -it prefect bash -lc "prefect deployment apply prefect_data/full_brewery_pipeline-deployment.yaml"
-```docker exec -it prefect bash -lc "python -c \"from workflow.flow import full_brewery_pipeline; full_brewery_pipeline()\""docker exec -it prefect bash -lc "python -c `\"from workflow.flow import full_brewery_pipeline; full_brewery_pipeline()`\""
+```
 
-Observação: o deployment já inclui um agendamento (cron) para rodar a cada hora.
+Optional: run the flow directly without deployment (for a quick smoke test):
+```powershell
+docker exec -it prefect bash -lc "python -c \"from workflow.flow import full_brewery_pipeline; full_brewery_pipeline()\""
+```
 
-## Executar o fluxo sob demanda
-Liste e rode o deployment manualmente:
+Note: the deployment already includes a schedule (cron) to run every hour.
+
+## Run the flow on demand
+List and trigger the deployment manually:
 ```powershell
 docker exec -it prefect bash -lc "prefect deployment ls"
 docker exec -it prefect bash -lc "prefect deployment run 'full-brewery-pipeline/full-brewery-pipeline-deployment'"
 ```
 
-## Parar e limpar
-- Parar os serviços:
+## Stop and clean up
+- Stop services:
 ```powershell
 docker compose down
 ```
 
-- Parar e remover volumes (dados do MinIO e Postgres serão apagados):
+- Stop and remove volumes (MinIO and Postgres data will be deleted):
 ```powershell
 docker compose down -v
 ```
 
-## Solução de problemas
-- UI do Prefect não abre: verifique se a porta 4200 está livre e o container `prefect-server` está saudável (`docker ps`).
-- Agent não consome tarefas: confirme que ele está rodando e ouvindo a fila `default`.
-	- Dica: rode novamente `docker exec -it prefect bash -lc "prefect agent start -q default"`.
-- Erros de import do Prefect (no editor): garanta que você está executando os comandos dentro do container `prefect`, que já tem as dependências corretas (versões fixadas em `requirements.txt`).
-- Após mudar `requirements.txt`: faça rebuild da imagem do `prefect` para garantir as libs atualizadas:
+## Troubleshooting
+- Prefect UI doesn't open: ensure port 4200 is free and the `prefect-server` container is healthy (`docker ps`).
+- Agent isn't picking up work: confirm it's running and listening to the `default` queue.
+  - Tip: run again `docker exec -it prefect bash -lc "prefect agent start -q default"`.
+- Prefect import errors (in your editor): make sure you're executing commands inside the `prefect` container, which already has the correct pinned dependencies (`requirements.txt`).
+- After changing `requirements.txt`: rebuild the `prefect` image to ensure updated libs are installed:
 ```powershell
 docker compose build --no-cache prefect
 docker compose up -d
 ```
-- MinIO credenciais padrão: usuário `minio`, senha `minio123` (definidos no `docker-compose.yaml`).
+- MinIO default credentials: user `minio`, password `minio123` (set in `docker-compose.yaml`).
 
-## Estrutura do fluxo
-O flow principal está em `workflow/flow.py` como `full_brewery_pipeline`. O deployment usa o entrypoint:
+## Flow structure
+The main flow is `full_brewery_pipeline` in `workflow/flow.py`. The deployment uses the entrypoint:
 ```
 workflow/flow.py:full_brewery_pipeline
 ```
-As transformações estão em `stages/` (bronze, silver, gold) e utilidades em `utils/`.
+Transformations live in `stages/` (bronze, silver, gold) and utilities in `utils/`.
 
 ---
 
-Com isso, qualquer pessoa consegue subir a stack, aplicar o deployment e executar o pipeline localmente usando Docker.
+With this, anyone can bring up the stack, apply the deployment, and run the pipeline locally using Docker.
