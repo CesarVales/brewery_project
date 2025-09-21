@@ -1,6 +1,5 @@
 from prefect import flow,get_run_logger
 
-import os
 from stages.bronze.brewery_api_ingestion import brewery_api_ingestion_flow
 from stages.silver.bronze_to_silver import bronze_to_silver
 from stages.gold.silver_to_gold import silver_to_gold

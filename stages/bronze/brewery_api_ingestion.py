@@ -1,9 +1,9 @@
 
 import os
-import json
 import requests
-
 from prefect import flow, get_run_logger
+from utils.minio_utils import upload_to_minio_from_memory
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,33 +29,20 @@ def api_data_fetch():
     logger.info(f"Fetched data from API: {api_url} with status code {response.status_code}")
     return None
 
-def upload_to_minio(minio_client, bucket_name, object_name, file_path):
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
-    minio_client.fput_object(bucket_name, object_name, file_path)
 
-def create_and_save_temp_file(data, temp_file_path="/tmp/raw_data_breweries.json"):
-    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
-    with open(temp_file_path, 'w') as f:
-        json.dump(data, f)
-    return temp_file_path
+
 
 @flow(name="brewery-api-ingestion")
 def brewery_api_ingestion_flow(minio_client):
     
     logger = get_run_logger()
 
-    # Fetch data from the API
     data = api_data_fetch()
     
-    temp_file_path = create_and_save_temp_file(data)
-
-    # Upload to MinIO
     bucket_name = "brewery-data"
     object_name = "bronze/raw_data_breweries.json"
-    upload_to_minio(minio_client, bucket_name, object_name, temp_file_path)
+
+    upload_to_minio_from_memory(minio_client, bucket_name, object_name, data)
 
     logger.info(f"Uploaded {object_name} to bucket {bucket_name} in MinIO.")
-
-    # Clean up temporary file
-    os.remove(temp_file_path)
+    logger.info("Brewery API Ingestion Completed.")
