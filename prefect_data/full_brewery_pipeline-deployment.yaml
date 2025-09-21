@@ -1,0 +1,51 @@
+###
+### A complete description of a Prefect Deployment for flow 'full-brewery-pipeline'
+###
+name: full-brewery-pipeline-deployment
+description: null
+version: d954f13c85cda8d07a99dbcfac0f850a
+# The work queue that will handle this deployment's runs
+work_queue_name: default
+work_pool_name: default-agent-pool
+tags:
+- BEES
+- brewery
+- openbrewerydb
+parameters: {}
+schedule:
+  cron: 0 * * * *
+  timezone: null
+  day_or: true
+is_schedule_active: true
+infra_overrides: {}
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: full-brewery-pipeline
+manifest_path: null
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  _block_document_id: ee4ff25e-d359-4c88-9c54-316b941deec2
+  _block_document_name: anonymous-23d4f950-39e8-4142-8cd5-2cc9b3ff2c9e
+  _is_anonymous: true
+  block_type_slug: process
+  _block_type_slug: process
+storage: null
+path: /opt/prefect-data
+entrypoint: workflow/flow.py:full_brewery_pipeline
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties: {}
+  required: null
+  definitions: null
+timestamp: '2025-09-21T19:03:30.466656+00:00'
+triggers: []
+enforce_parameter_schema: null
