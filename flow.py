@@ -10,6 +10,7 @@ import glob
 
 from stages.bronze.brewery_api_ingestion import brewery_api_ingestion_flow
 from stages.silver.bronze_to_silver import bronze_to_silver
+from stages.gold.silver_to_gold import silver_to_gold
 
 @task
 def setup_minio_client():
@@ -46,36 +47,6 @@ def create_spark_session():
 
     return builder.getOrCreate()
 
-@flow(name="spark-minio-integration")
-def spark_minio_flow():
-    # Setup clients
-    minio_client = setup_minio_client()
-    spark = create_spark_session()
-    
-    print('*'*55)
-    data = [("Alice", 1), ("Bob", 2), ("Charlie", 3)]
-    df = spark.createDataFrame(data, ["Name", "Value"])
-    
-    # Create bucket without s3a:// prefix
-    bucket_name = "test-bucket"
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
-    
-    # Write data and find the actual file created by Spark
-    df.coalesce(1).write.mode("overwrite").json("/tmp/data/")
-    
-    # en: glob lib enable regex for path
-    # pt: lib do glob possibilita regex para path
-    json_files = glob.glob("/tmp/data/*.json")
-    if json_files:
-        json_file = json_files[0]
-        print(f"Uploading JSON file: {json_file}")
-        minio_client.fput_object(bucket_name, "data.json", json_file)
-    else:
-        print("No JSON files found in /tmp/data/")
-
-    print("Flow completed successfully!")
-    spark.stop()
 @flow(name="full-brewery-pipeline")
 def full_brewery_pipeline():
     logger = logging.getLogger("Brewing Data... 🍻:")
@@ -85,10 +56,12 @@ def full_brewery_pipeline():
     logger.addHandler(handler)
 
     logger.info("Starting full brewery pipeline...")
-    
-    brewery_api_ingestion_flow()
-    bronze_to_silver(minio_client=setup_minio_client())
-    
+
+    spark_session = create_spark_session()
+    minio_client = setup_minio_client()
+    brewery_api_ingestion_flow(minio_client=minio_client)
+    bronze_to_silver(spark=spark_session, minio_client=minio_client)
+    silver_to_gold(spark=spark_session)
     logger.info("Full brewery pipeline completed.")
 
 if __name__ == "__main__":

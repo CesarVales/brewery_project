@@ -3,3 +3,4 @@ data
 __pycache__
 minio-data
 plugins
+brewery-data

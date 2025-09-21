@@ -1,24 +1,16 @@
 import requests
 
 from prefect import flow, get_run_logger
-from prefect.filesystems import S3
-from prefect.infrastructure import DockerContainer
 from pyspark.sql import SparkSession
 import os
 from minio import Minio
 import glob
 from logging import Logger
+import json
 
 from dotenv import load_dotenv
 load_dotenv()
 
-def setup_minio_client():
-    return Minio(
-        os.getenv("MINIO_ENDPOINT", "minio:9000"),
-        access_key=os.getenv("MINIO_ACCESS_KEY", "minio"),
-        secret_key=os.getenv("MINIO_SECRET_KEY", "minio123"),
-        secure=False
-    )
 
 def api_data_fetch():
     api_url = os.getenv("API_URL", "https://api.openbrewerydb.org/v1/breweries")
@@ -46,23 +38,21 @@ def upload_to_minio(minio_client, bucket_name, object_name, file_path):
         minio_client.make_bucket(bucket_name)
     minio_client.fput_object(bucket_name, object_name, file_path)
 
+def create_and_save_temp_file(data, temp_file_path="/tmp/raw_data_breweries.json"):
+    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+    with open(temp_file_path, 'w') as f:
+        json.dump(data, f)
+    return temp_file_path
+
 @flow(name="brewery-api-ingestion")
-def brewery_api_ingestion_flow():
+def brewery_api_ingestion_flow(minio_client):
     
     logger = get_run_logger()
 
     # Fetch data from the API
     data = api_data_fetch()
     
-    # Save data to a temporary JSON file
-    temp_file_path = "/tmp/raw_data_breweries.json"
-    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
-    with open(temp_file_path, 'w') as f:
-        import json
-        json.dump(data, f)
-    logger.info(f"Saved API data to temporary file: {temp_file_path}")
-
-    minio_client = setup_minio_client()
+    temp_file_path = create_and_save_temp_file(data)
 
     # Upload to MinIO
     bucket_name = "brewery-data"
