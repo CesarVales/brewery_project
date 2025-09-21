@@ -1,9 +1,5 @@
 
-import os
-from prefect import flow, task
-from pyspark.sql import SparkSession
-from minio import Minio
-from pyspark.sql import functions as F
+from prefect import flow,get_run_logger
 from stages.gold.transformations import unify_address_columns, validate_geographic_coordinates, build_valid_url
 
 
@@ -12,6 +8,9 @@ def filter_null_ids_names_cities(df):
 
 @flow(name="silver-to-gold")
 def silver_to_gold(spark):
+    logger = get_run_logger()
+    logger.info("Starting silver to gold transformation...")
+    
     silver_path = "s3a://brewery-data/silver/"
     df_silver_brewery = spark.read.parquet(silver_path)
 

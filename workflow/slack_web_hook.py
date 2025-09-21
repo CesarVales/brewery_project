@@ -8,8 +8,8 @@ def send_automatisch_notification():
     automatisch_url = f"http://localhost:4200/api/v1/trigger/{workflow_id}"
 
     payload = {"message": """
-    !!!!ALERT!!!!! - Pipeline Failed
-    The ETL pipeline has encountered an error during execution. Check the logs for more details.
+        !!!!ALERT!!!!! - Pipeline Failed
+        The ETL pipeline has encountered an error during execution. Check the logs for more details.
     """}
 
     try:

@@ -1,21 +1,17 @@
+
+import os
+import json
 import requests
 
 from prefect import flow, get_run_logger
-from pyspark.sql import SparkSession
-import os
-from minio import Minio
-import glob
-from logging import Logger
-import json
-
 from dotenv import load_dotenv
 load_dotenv()
 
 
 def api_data_fetch():
-    api_url = os.getenv("API_URL", "https://api.openbrewerydb.org/v1/breweries")
+    api_url = os.getenv("API_URL")
     response = requests.get(api_url)
-    
+
     retries = 2
     while retries > 0:
         try:
