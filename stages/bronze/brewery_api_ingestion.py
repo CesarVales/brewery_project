@@ -66,7 +66,7 @@ def brewery_api_ingestion_flow():
 
     # Upload to MinIO
     bucket_name = "brewery-data"
-    object_name = "raw_data_breweries.json"
+    object_name = "bronze/raw_data_breweries.json"
     upload_to_minio(minio_client, bucket_name, object_name, temp_file_path)
 
     logger.info(f"Uploaded {object_name} to bucket {bucket_name} in MinIO.")
